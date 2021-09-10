@@ -1,0 +1,14 @@
+global:
+  smtp_smarthost: 'smtp.exmail.qq.com'
+  smtp_from: 'xxxx@xxx.com'
+  smtp_auth_username: 'xxxx@xxx.com'
+  smtp_auth_password: 'password'
+
+route:
+  group_by: ['cluster']
+  receiver: team
+
+receivers:
+  - name: 'team'
+    email_configs:
+      - to: 'xxxx@xxxx.com'

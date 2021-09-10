@@ -1,7 +1,6 @@
 version: "3.3"
 
 services:
-
   metric-influx:
     image: influxdb
     volumes:
@@ -37,8 +36,8 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - /etc/prometheus/alerts/:/etc/prometheus/rules.d/
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerts/:/etc/prometheus/rules.d/
     networks:
       - loki
     depends_on:
@@ -68,7 +67,7 @@ services:
     ports:
       - 9093:9093
     volumes:
-      - /etc/alertmanager/:/etc/alertmanager/alertmanager.yml
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
       - loki
     depends_on:
