@@ -1,0 +1,70 @@
+version: '3.3'
+services:
+  spring-boot-webflux:
+    image: spring-boot-webflux:latest
+    hostname: spring-boot-webflux
+    extra_hosts:
+      - loki:192.168.0.6
+      - pushgateway:192.168.0.6
+    ports:
+      - 10001:10001
+    networks:
+      - app
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        max-size: "100m"
+        max-file: "10"
+        loki-pipeline-stages: |
+          - multiline:
+              firstline: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \D+ \['
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        window: 120s
+        max_attempts: 3
+      resources:
+        reservations:
+          cpus: '0.2'
+          memory: 512M
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+  spring-boot-webmvc:
+    image: spring-boot-webmvc:latest
+    hostname: spring-boot-webmvc
+    extra_hosts:
+      - loki:192.168.0.6
+      - pushgateway:192.168.0.6
+    networks:
+      - app
+    ports:
+      - 10002:10002
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        max-size: "100m"
+        max-file: "10"
+        loki-pipeline-stages: |
+          - multiline:
+              firstline: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \D+ \['
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        window: 120s
+        max_attempts: 3
+      resources:
+        reservations:
+          cpus: '0.2'
+          memory: 512M
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
+networks:
+  app:
+    driver: overlay
