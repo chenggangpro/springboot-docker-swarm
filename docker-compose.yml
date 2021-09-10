@@ -1,0 +1,121 @@
+version: "3.3"
+
+services:
+
+  metric-influx:
+    image: influxdb
+    volumes:
+      - metric-influx:/var/lib/influxdb
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  cadvisor:
+    image: google/cadvisor
+    hostname: '{{.Node.Hostname}}'
+    command: -logtostderr -docker_only -storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=metric-influx:8086
+    ports:
+      - 8080:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    depends_on:
+      - metric-influx
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.platform.os == linux
+
+  prometheus:
+    image: prom/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    volumes:
+      - /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /etc/prometheus/alerts/:/etc/prometheus/rules.d/
+    networks:
+      - loki
+    depends_on:
+      - cadvisor
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  grafana:
+    image: grafana/grafana
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=zh_CN.UTF-8
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana:/var/lib/grafana
+    networks:
+      - loki
+
+  alertmanager:
+    image: prom/alertmanager
+    command: --config.file=/etc/alertmanager/alertmanager.yml
+    ports:
+      - 9093:9093
+    volumes:
+      - /etc/alertmanager/:/etc/alertmanager/alertmanager.yml
+    networks:
+      - loki
+    depends_on:
+      - prometheus
+      - grafana
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  loki:
+    image: grafana/loki
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=zh_CN.UTF-8
+    ports:
+      - 3100:3100
+    networks:
+      - loki
+    depends_on:
+      - grafana
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  pushgateway:
+    image: prom/pushgateway
+    ports:
+      - 9091:9091
+    networks:
+      - loki
+    depends_on:
+      - prometheus
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  loki:
+volumes:
+  metric-influx:
+    driver: local
+  grafana:
+    driver: local
